@@ -7,3 +7,6 @@
 
 ### Output:
 We will see daily overtime, as well as weekly overtime reports.
+
+### FYI:
+Half day calculations are not included

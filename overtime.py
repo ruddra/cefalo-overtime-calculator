@@ -3,6 +3,7 @@ import datetime
 import operator
 
 CSV_FILE = './overtime.csv'
+CSV_SEP = ","
 DATETIME_FORMAT = "%m/%d/%Y %H:%M"
 WORKING_HOURS = 9
 DATE_ROW = 0
@@ -18,6 +19,7 @@ class CalculateOverTime(object):
         self.date_row = DATE_ROW
         self.entry_row = ENTRY_ROW
         self.exit_row = EXIT_ROW
+        self.csv_sep = CSV_SEP
         self.weekly_overtime_dict = {}
         self.weekly_overtime = datetime.timedelta(0)
         self.current_week = -1
@@ -45,6 +47,7 @@ class CalculateOverTime(object):
 
     def get_overtime(self, start_time, end_time):
         current_time =  end_time - start_time
+        hour, minute = self.get_hour_minutes(current_time, return_type="int")
         overtime = current_time - datetime.timedelta(hours=WORKING_HOURS)
         return overtime
 
@@ -93,28 +96,42 @@ class CalculateOverTime(object):
         self.total_overtime += curr_overtime
 
     def process_csv(self):
-        self.show_header("Daily Overtime", 61)
-        with open(self.csv_file) as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=',')
-            line = 0
-            for row in csv_reader:
-                line += 1
-                if line == 1:
-                    continue
-                date = row[self.date_row]
-                entry = row[self.entry_row]
-                end = row[self.exit_row]
-                entry_time = self.get_datetime(date, entry)
-                exit_time = self.get_datetime(date, end)
-                current_week = self.get_week(entry_time)
-                if entry_time == exit_time:
-                    continue
-                current_overtime = self.get_overtime(entry_time, exit_time) 
-                self.update_total_overtime(current_overtime)
-                self.update_weekly_report(current_week, current_overtime)
-                self.generate_daily_report(date, entry, end, current_overtime)
-        print('-'*61)
+        try:
+            self.show_header("Daily Overtime", 61)
+            with open(self.csv_file) as csv_file:
+                csv_reader = csv.reader(csv_file, delimiter=self.csv_sep)
+                line = 0
+                for row in csv_reader:
+                    line += 1
+                    if line == 1:
+                        continue
+                    date = row[self.date_row]
+                    entry = row[self.entry_row]
+                    end = row[self.exit_row]
+                    entry_time = self.get_datetime(date, entry)
+                    exit_time = self.get_datetime(date, end)
+                    current_week = self.get_week(entry_time)
+                    if entry_time == exit_time:
+                        continue
+                    current_overtime = self.get_overtime(entry_time, exit_time) 
+                    self.update_total_overtime(current_overtime)
+                    self.update_weekly_report(current_week, current_overtime)
+                    self.generate_daily_report(date, entry, end, current_overtime)
+            print('-'*61)
+        except IOError:
+            print("File not found at {}".format(self.csv_file))
 
+        except IndexError:
+            print("Delimiter '{}' not found".format(self.csv_sep))
+        
+        except ValueError as e:
+            print(str(e))
+        
+        except Exception as e:
+            print("Generic Exception")
+            print(str(e))
+        
+        
     def display_weekly_entry(self, week_no, overtime):
         overtime = self.get_hour_minutes(overtime)
         print(
